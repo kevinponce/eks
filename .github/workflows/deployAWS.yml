@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: set STAGE variable in environment for next steps
-        run: echo "STAGE=pr-${{ github.event.number }}-${{ env.GITHUB_HEAD_REF_SLUG }}" >> $GITHUB_ENV
-
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Set Branch Name
         run: echo "BRANCH=${{ github.head_ref || github.ref_name }}" >> $GITHUB_ENV
+
+      - name: set STAGE variable in environment for next steps
+        run: echo "STAGE=pr-${{ github.event.number }}-${{ env.BRANCH }}" >> $GITHUB_ENV
 
       - name: Validate Branch Name
         run: |
@@ -38,15 +38,14 @@ jobs:
           fi
 
       - name: create a github deployment
-        uses: bobheadxi/deployments@v0.5.2
+        uses: bobheadxi/deployments@v1
         id: deployment
         with:
           step: start
           token: ${{ secrets.GITHUB_TOKEN }}
           env: ${{ env.STAGE }}
           ref: ${{ github.head_ref }}
-          no_override: false
-          transient: true
+          override: false
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -154,11 +153,12 @@ jobs:
       #     done;
 
       - name: update the github deployment status
-        uses: bobheadxi/deployments@v0.5.2
+        uses: bobheadxi/deployments@v1
         if: always()
         with:
           step: finish
           token: ${{ secrets.GITHUB_TOKEN }}
           status: ${{ job.status }}
-          # deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          env: ${{ steps.deployment.outputs.env }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
           # env_url: http://${{ env.DEPLOYMENT_URL }}
