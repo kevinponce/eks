@@ -46,6 +46,7 @@ jobs:
           env: ${{ env.STAGE }}
           ref: ${{ github.head_ref }}
           override: false
+          debug: true
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
