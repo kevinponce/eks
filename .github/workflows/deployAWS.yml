@@ -37,16 +37,16 @@ jobs:
             exit 1
           fi
 
-      # - name: create a github deployment
-      #   uses: bobheadxi/deployments@v0.5.2
-      #   id: deployment
-      #   with:
-      #     step: start
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     env: ${{ env.STAGE }}
-      #     ref: ${{ github.head_ref }}
-      #     no_override: false
-      #     transient: true
+      - name: create a github deployment
+        uses: bobheadxi/deployments@v0.5.2
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: ${{ env.STAGE }}
+          ref: ${{ github.head_ref }}
+          no_override: false
+          transient: true
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -153,12 +153,12 @@ jobs:
       #       sleep 1;
       #     done;
 
-      # - name: update the github deployment status
-      #   uses: bobheadxi/deployments@v0.5.2
-      #   if: always()
-      #   with:
-      #     step: finish
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     status: ${{ job.status }}
-      #     deployment_id: ${{ steps.deployment.outputs.deployment_id }}
-      #     env_url: http://${{ env.DEPLOYMENT_URL }}
+      - name: update the github deployment status
+        uses: bobheadxi/deployments@v0.5.2
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          # deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          # env_url: http://${{ env.DEPLOYMENT_URL }}
