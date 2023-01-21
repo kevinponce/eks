@@ -7,9 +7,9 @@ env:
   RELEASE_REVISION: "pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}"
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: pr_env
-  EKS_NAME: ${{ vars. EKS_NAME}}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  EKS_NAME: ${{ vars.EKS_NAME }}
 jobs:
   deploy:
     if: |
@@ -91,11 +91,11 @@ jobs:
           version: 'v1.21.3' # default is latest stable
         id: install
 
-      # - name: Update kube config
-      #   run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
 
-      # - name: Create namespace
-      #   run: kubectl create namespace ${{ env.BRANCH }} --dry-run=client -o yaml | kubectl apply -f -
+      - name: Create namespace
+        run: kubectl create namespace ${{ env.BRANCH }} --dry-run=client -o yaml | kubectl apply -f -
 
       # - name: Deploy image to AWS EKS
       #   run: |
