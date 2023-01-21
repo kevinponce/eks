@@ -9,7 +9,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: pr_env
-  EKS_NAME: ${{ var. EKS_NAME}}
+  EKS_NAME: ${{ vars. EKS_NAME}}
 jobs:
   deploy:
     if: |
