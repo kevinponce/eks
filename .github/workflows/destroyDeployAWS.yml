@@ -37,8 +37,8 @@ jobs:
       - name: Delete ECR
         run: aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids imageTag=${{ env.BRANCH }}_latest
 
-      # - name: Update kube config
-      #   run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
 
-      # - name: Delete namespace
-      #   run: kubectl delete namespace ${{ env.BRANCH }}
+      - name: Delete namespace
+        run: kubectl delete namespace ${{ env.BRANCH }}

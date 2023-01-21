@@ -9,7 +9,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: pr_env
-  # EKS_NAME: rails-docker2
+  EKS_NAME: ${{ variables. EKS_NAME}}
 jobs:
   deploy:
     if: |
@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Test variable
+        run: echo "${{ env.EKS_NAME }}"
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -82,11 +85,11 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      # - name: Install kubectl
-      #   uses: azure/setup-kubectl@v3
-      #   with:
-      #     version: 'v1.21.3' # default is latest stable
-      #   id: install
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.21.3' # default is latest stable
+        id: install
 
       # - name: Update kube config
       #   run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
