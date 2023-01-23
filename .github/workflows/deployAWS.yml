@@ -7,9 +7,9 @@ env:
   RELEASE_REVISION: "pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}"
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: pr_env
-  # EKS_NAME: rails-docker2
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  EKS_NAME: ${{ vars.EKS_NAME }}
 jobs:
   deploy:
     if: |
@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Test variable
+        run: echo "${{ env.EKS_NAME }}"
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -82,76 +85,52 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      # - name: Install kubectl
-      #   uses: azure/setup-kubectl@v3
-      #   with:
-      #     version: 'v1.21.3' # default is latest stable
-      #   id: install
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.21.3' # default is latest stable
+        id: install
 
-      # - name: Update kube config
-      #   run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name ${{ env.EKS_NAME }} --region ${{ env.AWS_REGION }}
 
-      # - name: Create namespace
-      #   run: kubectl create namespace ${{ env.BRANCH }} --dry-run=client -o yaml | kubectl apply -f -
+      - name: Create namespace
+        run: kubectl create namespace ${{ env.BRANCH }} --dry-run=client -o yaml | kubectl apply -f -
 
       # - name: Deploy image to AWS EKS
       #   run: |
       #     kubectl apply -f .kubernetes/qa/aws-auth.yaml --wait=true
 
-      #     kubectl apply -f .kubernetes/qa/postgres-config.yaml --namespace=${{ env.BRANCH }} --wait=true
-      #     kubectl apply -f .kubernetes/qa/postgres-secret.yaml --namespace=${{ env.BRANCH }} --wait=true
-      #     kubectl apply -f .kubernetes/qa/postgres.yaml --namespace=${{ env.BRANCH }} --wait=true
+      - name: Create Webapp
+        run: |
+          kubectl apply -f .kubernetes/qa/webapp.yaml --namespace=${{ env.BRANCH }} --wait=true
 
-      #     kubectl apply -f .kubernetes/qa/redis-config.yaml --namespace=${{ env.BRANCH }} --wait=true
-      #     kubectl apply -f .kubernetes/qa/redis.yaml --namespace=${{ env.BRANCH }} --wait=true
+          # assigns the branch image ecr path
+          kubectl set image deployment webapp-deployment webapp=${{ env.ECR_PATH }} --record --namespace=${{ env.BRANCH }}
 
-      #     kubectl apply -f .kubernetes/qa/dynamodb.yaml --namespace=${{ env.BRANCH }} --wait=true
+          # assigns a env variable to force udpate webapp-deployment
+          kubectl set env deployment webapp-deployment DEPLOYED_AT=$( date "+%Y-%m-%d_%H:%M:%S" ) --namespace=${{ env.BRANCH }}
 
-      #     kubectl apply -f .kubernetes/qa/redis-config.yaml --namespace=${{ env.BRANCH }} --wait=true
-      #     kubectl apply -f .kubernetes/qa/redis.yaml --namespace=${{ env.BRANCH }} --wait=true
+      - name: Set DEPLOYMENT_URL
+        run: |
+          # Make sure DEPLOYMENT_URL is set and timeout after 60 seconds
+          timeout=60
 
-      #     kubectl apply -f .kubernetes/qa/s3.yaml --namespace=${{ env.BRANCH }} --wait=true
+          # zero test
+          while [ -z "$DEPLOYMENT_URL" ];
+          do
+            DEPLOYMENT_URL=$(kubectl get services webapp-service --namespace=${{ env.BRANCH }} --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_ENV
 
-      # - name: Create Webapp
-      #   run: |
-      #     kubectl apply -f .kubernetes/qa/webapp.yaml --namespace=${{ env.BRANCH }} --wait=true
+            ((timeout--))
 
-      #     # assigns the branch image ecr path
-      #     kubectl set image deployment webapp-deployment webapp=${{ env.ECR_PATH }} --record --namespace=${{ env.BRANCH }}
+            if [ "$timeout" == 0 ]; then
+              echo "ERROR: Timeout while waiting for DEPLOYMENT_URL"
+              exit 1
+            fi
 
-      #     # assigns a env variable to force udpate webapp-deployment
-      #     kubectl set env deployment webapp-deployment DEPLOYED_AT=$( date "+%Y-%m-%d_%H:%M:%S" ) --namespace=${{ env.BRANCH }}
-
-      # - name: Create Sidekiq
-      #   run: |
-      #     kubectl apply -f .kubernetes/qa/sidekiq.yaml --namespace=${{ env.BRANCH }} --wait=true
-
-      #     # assigns the branch image ecr path
-      #     kubectl set image deployment sidekiq-deployment sidekiq=${{ env.ECR_PATH }} --record --namespace=${{ env.BRANCH }}
-
-      #     # assigns a env variable to force udpate sidekiq-deployment
-      #     kubectl set env deployment sidekiq-deployment DEPLOYED_AT=$( date "+%Y-%m-%d_%H:%M:%S" ) --namespace=${{ env.BRANCH }}
-
-      # - name: Set DEPLOYMENT_URL
-      #   run: |
-      #     # Make sure DEPLOYMENT_URL is set and timeout after 60 seconds
-      #     timeout=60
-
-      #     # zero test
-      #     while [ -z "$DEPLOYMENT_URL" ];
-      #     do
-      #       DEPLOYMENT_URL=$(kubectl get services webapp-service --namespace=${{ env.BRANCH }} --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-      #       echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_ENV
-
-      #       ((timeout--))
-
-      #       if [ "$timeout" == 0 ]; then
-      #         echo "ERROR: Timeout while waiting for DEPLOYMENT_URL"
-      #         exit 1
-      #       fi
-
-      #       sleep 1;
-      #     done;
+            sleep 1;
+          done;
 
       - name: update the github deployment status
         uses: bobheadxi/deployments@v1
@@ -162,4 +141,4 @@ jobs:
           status: ${{ job.status }}
           env: ${{ steps.deployment.outputs.env }}
           deployment_id: ${{ steps.deployment.outputs.deployment_id }}
-          # env_url: http://${{ env.DEPLOYMENT_URL }}
+          env_url: http://${{ env.DEPLOYMENT_URL }}

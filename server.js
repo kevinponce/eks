@@ -10,7 +10,7 @@ const ENV = 'DEV';
 const app = express();
 app.get('/', (req, res) => {
   res.statusCode = 200;
-  res.send(getPage(msg));
+  res.send(getPage());
 });
 
 app.listen(PORT, HOST);

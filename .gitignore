@@ -1,6 +1,6 @@
 # Local .terraform directories
 **/.terraform/*
-.terraform.lock.hcl
+**/.terraform.lock.hcl
 
 # .tfstate files
 *.tfstate
@@ -164,3 +164,5 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+.DS_Store
